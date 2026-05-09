@@ -7,6 +7,10 @@ interface Props {
   meanings: DictionaryMeaning[];
   phonetic?: string;
   onClose: () => void;
+  onBack: () => void;
+  onForward: () => void;
+  canGoBack: boolean;
+  canGoForward: boolean;
 }
 
 const POS_BADGE: Record<string, string> = {
@@ -17,7 +21,7 @@ const POS_BADGE: Record<string, string> = {
   adverb: "badge-adv",
 };
 
-export default function NodePanel({ node, meanings, phonetic, onClose }: Props) {
+export default function NodePanel({ node, meanings, phonetic, onClose, onBack, onForward, canGoBack, canGoForward }: Props) {
   if (!node) return null;
 
   const relevantMeanings = meanings.filter(
@@ -54,7 +58,13 @@ export default function NodePanel({ node, meanings, phonetic, onClose }: Props) 
       )}
 
       <div className="panel-meta">
-        <span>Weight: <b>{node.weight.toFixed(1)}</b></span>
+        <div className="meta-weight">
+          <span>Weight: <b>{node.weight.toFixed(1)}</b></span>
+        </div>
+        <div className="meta-nav">
+          <button disabled={!canGoBack} onClick={onBack} aria-label="Go back in history">← Back</button>
+          <button disabled={!canGoForward} onClick={onForward} aria-label="Go forward in history">Forward →</button>
+        </div>
       </div>
     </aside>
   );
