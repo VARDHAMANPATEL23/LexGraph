@@ -4,6 +4,16 @@ A real-time, interactive 3D knowledge graph built on dictionary definitions. Sea
 
 **Live Application:** [lex-graph.vercel.app](https://lex-graph.vercel.app)
 
+## Demo / Previews
+
+| 3D Knowledge Graph (Dark) | Interactive Details Panel (Dark) |
+|---|---|
+| ![3D Knowledge Graph](./screenshots/1_dark_mode_graph.png) | ![Interactive Details Panel](./screenshots/2_dark_mode_details.png) |
+
+| 3D Knowledge Graph (Light) | Word Library Drawer |
+|---|---|
+| ![3D Knowledge Graph Light](./screenshots/3_light_mode_graph.png) | ![Word Library Drawer](./screenshots/4_library_panel.png) |
+
 ---
 
 ## Features
