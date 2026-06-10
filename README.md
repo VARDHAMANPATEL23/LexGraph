@@ -49,7 +49,7 @@ A real-time, interactive 3D knowledge graph built on dictionary definitions. Sea
 | Styling | Vanilla CSS (Custom Token-based System) |
 | 3D Simulation | `3d-force-graph` + Three.js |
 | NLP Parsing | `compromise` (Client-side Part-of-Speech Tagging) |
-| API Provider | [dictionaryapi.dev](https://dictionaryapi.dev) (CORS-proxied) |
+| API Provider | [Free Dictionary API](https://github.com/meetDeveloper/freeDictionaryAPI) by [meetDeveloper](https://github.com/meetDeveloper) (CORS-proxied) |
 
 ---
 
