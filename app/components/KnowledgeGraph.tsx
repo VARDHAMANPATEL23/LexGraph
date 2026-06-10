@@ -4,12 +4,20 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { GraphData, GraphNode } from "@/app/lib/nlp";
 
-const POS_COLOR: Record<string, string> = {
+const POS_COLOR_DARK: Record<string, string> = {
   root: "#f97316",
-  noun: "#c0c1ff",
-  verb: "#5de6ff",
+  noun: "#818cf8",
+  verb: "#22d3ee",
   adjective: "#a78bfa",
   adverb: "#34d399",
+};
+
+const POS_COLOR_LIGHT: Record<string, string> = {
+  root: "#ea580c",
+  noun: "#4f46e5",
+  verb: "#0891b2",
+  adjective: "#7c3aed",
+  adverb: "#059669",
 };
 
 interface FGNode extends GraphNode {
@@ -54,6 +62,8 @@ interface ForceGraph3DInstance {
 
 interface Props {
   data: GraphData;
+  bgColor?: string;
+  theme?: "dark" | "light";
   onNodeClick?: (node: GraphNode, isDoubleClick: boolean) => void;
 }
 
@@ -86,11 +96,13 @@ function makeGlowSprite(hex: string, size: number): THREE.Sprite {
   return sprite;
 }
 
-export default function KnowledgeGraph({ data, onNodeClick }: Props) {
+export default function KnowledgeGraph({ data, bgColor = "#030712", theme = "dark", onNodeClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraph3DInstance | null>(null);
   const onNodeClickRef = useRef(onNodeClick);
   onNodeClickRef.current = onNodeClick;
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
   // Always holds the latest data so init can seed it after async import resolves
   const dataRef = useRef(data);
   dataRef.current = data;
@@ -108,21 +120,25 @@ export default function KnowledgeGraph({ data, onNodeClick }: Props) {
         .nodeId("id")
         .nodeLabel((node: object) => {
           const n = node as GraphNode;
+          const isLight = themeRef.current === "light";
           return `<div style="
-            background:rgba(13,13,21,0.9);
-            border:1px solid rgba(192,193,255,0.18);
+            background:${isLight ? "rgba(255,255,255,0.96)" : "rgba(13,13,21,0.92)"};
+            border:1px solid ${isLight ? "rgba(79,70,229,0.22)" : "rgba(192,193,255,0.18)"};
             backdrop-filter:blur(12px);
-            color:#e4e1ed;
+            color:${isLight ? "#0f0f1a" : "#e4e1ed"};
             font-family:'Hanken Grotesk',sans-serif;
             font-size:12px;
+            font-weight:500;
             padding:5px 10px;
             border-radius:8px;
             pointer-events:none;
+            box-shadow:${isLight ? "0 2px 12px rgba(0,0,0,0.10)" : "none"};
           ">${n.label}</div>`;
         })
         .nodeThreeObject((node: object) => {
           const n = node as GraphNode;
-          const hex = POS_COLOR[n.pos] ?? "#94a3b8";
+          const palette = themeRef.current === "light" ? POS_COLOR_LIGHT : POS_COLOR_DARK;
+          const hex = palette[n.pos] ?? "#94a3b8";
           const color = new THREE.Color(hex);
           const size = nodeSize(n);
           const group = new THREE.Group();
@@ -146,21 +162,30 @@ export default function KnowledgeGraph({ data, onNodeClick }: Props) {
           return group;
         })
         .nodeThreeObjectExtend(false)
-        // Edges + particles — small width keeps them as flowing sparks, not spheres
-        .linkColor(() => "rgba(192,193,255,0.18)")
-        .linkWidth((link: object) =>
-          Math.max(0.4, ((link as { weight?: number }).weight ?? 0.5) * 0.55)
+        // Edges + particles
+        .linkColor(() =>
+          themeRef.current === "light"
+            ? "rgba(79,70,229,0.28)"
+            : "rgba(192,193,255,0.18)"
         )
-        .linkOpacity(0.45)
+        .linkWidth(0.5)
+        .linkOpacity(0.55)
         .linkDirectionalParticles(2)
         .linkDirectionalParticleWidth(0.8)
         .linkDirectionalParticleSpeed(0.004)
-        .linkDirectionalParticleColor(() => "rgba(255,255,255,0.55)")
-        .backgroundColor("#030712")
+        .linkDirectionalParticleColor(() =>
+          themeRef.current === "light"
+            ? "rgba(79,70,229,0.9)"
+            : "rgba(255,255,255,0.65)"
+        )
+        .backgroundColor(bgColor)
         .enableNavigationControls(true)
         .showNavInfo(false)
         .width(el.clientWidth)
         .height(el.clientHeight);
+
+      // Move camera close on init — default is ~1000 units away
+      graph.cameraPosition({ x: 0, y: 0, z: 180 });
 
       // Seed with current data immediately — prevents double-click needed on first search
       graph.graphData({ nodes: dataRef.current.nodes, links: dataRef.current.links });
@@ -223,6 +248,18 @@ export default function KnowledgeGraph({ data, onNodeClick }: Props) {
     });
     g.graphData({ nodes, links: data.links });
   }, [data]);
+
+  // Update 3D scene when theme/bg changes — also refresh data so link color callbacks re-evaluate
+  useEffect(() => {
+    const g = graphRef.current;
+    if (!g) return;
+    g.backgroundColor(bgColor);
+    // Re-feed existing data so color lambdas are re-called with new themeRef value
+    try {
+      const current = g.graphData();
+      g.graphData({ nodes: current.nodes, links: current.links });
+    } catch (_) { /* graph may not be ready */ }
+  }, [bgColor]);
 
   // Responsive resize
   useEffect(() => {
