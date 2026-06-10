@@ -1,17 +1,31 @@
-
 # LexGraph — Oxford 3D Knowledge Graph
 
-A real-time, interactive 3D knowledge graph built on dictionary definitions. Search any English word and watch its semantic relationships emerge as a navigable 3D graph — nodes weighted by NLP co-occurrence, edges drawn by syntactic proximity.
+A real-time, interactive 3D knowledge graph built on dictionary definitions. Search any English word to visualize its semantic relationships as a navigable 3D space. Nodes are colored by part of speech, sized by relative significance, and connected by syntactic proximity.
+
+**Live Application:** [lex-graph.vercel.app](https://lex-graph.vercel.app)
+
+---
+
+## Features
+
+- **Semantic 3D Graphs** — Render dictionary definitions as nodes and edges in a 3D force-directed layout.
+- **Natural Language Processing** — POS tagging via `compromise` extracts content words (nouns, verbs, adjectives, adverbs) while filtering out syntactic stop words.
+- **Personal Word Library** — Save searched words to local storage and browse them within a dedicated drawer UI.
+- **Library Interrelation Graph** — Compile and visualize all saved terms in a single unified graph, showing conceptual bridges formed by shared dictionary words.
+- **Interactive Navigation** — Double-click any node to recursively search and expand the graph.
+- **History & Traversal** — Go backward and forward through your traversal history using custom panel navigation.
+- **Layout Persistence** — Retains existing node coordinates on data update, ensuring smooth, non-disruptive physics transitions.
+- **Adaptive Theme Engine** — High-contrast light and dark themes with persistent settings and real-time WebGL background adaptation.
 
 ---
 
 ## How It Works
 
-1. **Search** — Enter any English word. The app fetches its definition from [dictionaryapi.dev](https://dictionaryapi.dev) via a server-side proxy.
-2. **NLP Processing** — [`compromise.js`](https://github.com/spencermountain/compromise) parses every definition sentence, strips function words (articles, prepositions, conjunctions), and extracts **content words** — nouns, verbs, adjectives, and adverbs only.
-3. **Graph Construction** — Each content word becomes a node. Edge weight = co-occurrence frequency of two words within the same definition sentence. Nodes that appear repeatedly across multiple definitions gain higher weight (rendered as larger spheres).
-4. **3D Rendering** — [`3d-force-graph`](https://github.com/vasturiano/3d-force-graph) renders the graph using WebGL via Three.js with a d3-force-3d physics simulation.
-5. **Recursive Expansion** — Click any node to fetch *that* word's definitions and expand the graph in place, preserving existing node positions.
+1. **Query & Proxy** — The user searches for a term. The application fetches the lexical payload from the Dictionary API via a server-side proxy route.
+2. **NLP Segmentation** — The definitions are parsed by sentences. The system filters out non-content grammatical functions (conjunctions, prepositions, articles).
+3. **Relation Mapping** — Node weights are calculated using term frequency across definitions. Edges are established based on word co-occurrence within individual sentences.
+4. **WebGL Rendering** — WebGL and Three.js process the coordinates via a d3-force-3d simulation.
+5. **Dynamic Interrelation** — For the personal library, roots are mapped as custom nodes, and shared content terms create semantic bridges linking different root nodes.
 
 ---
 
@@ -20,28 +34,29 @@ A real-time, interactive 3D knowledge graph built on dictionary definitions. Sea
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router) |
-| Language | TypeScript |
-| Styling | Vanilla CSS (custom design system) |
-| 3D Graph | `3d-force-graph` + Three.js |
-| NLP | `compromise.js` (client-side POS tagging) |
-| Dictionary API | [dictionaryapi.dev](https://dictionaryapi.dev) — free, no key required |
 | Runtime | Bun |
-| Design System | [Stitch MCP](https://stitch.withgoogle.com) — Hanken Grotesk + JetBrains Mono |
+| Language | TypeScript |
+| Styling | Vanilla CSS (Custom Token-based System) |
+| 3D Simulation | `3d-force-graph` + Three.js |
+| NLP Parsing | `compromise` (Client-side Part-of-Speech Tagging) |
+| API Provider | [dictionaryapi.dev](https://dictionaryapi.dev) (CORS-proxied) |
 
 ---
 
 ## Graph Semantics
 
-| Node Color | Part of Speech | Role |
-|---|---|---|
-| Orange | Root | The searched word |
-| Indigo | Noun | Subject/object terms |
-| Cyan | Verb | Action terms |
-| Violet | Adjective | Descriptive terms |
-| Emerald | Adverb | Modifier terms |
+### Node Colors
 
-**Node size** = term frequency across all definitions (higher = more central to the meaning).  
-**Edge width** = co-occurrence count within definition sentences.
+| Node Color (Dark Mode) | Node Color (Light Mode) | Part of Speech | Role |
+|---|---|---|---|
+| Orange (`#f97316`) | Orange (`#ea580c`) | Root | The searched word / Library root |
+| Indigo (`#818cf8`) | Indigo (`#4f46e5`) | Noun | Subject or object terms |
+| Cyan (`#22d3ee`) | Cyan (`#0891b2`) | Verb | Action or state terms |
+| Violet (`#a78bfa`) | Violet (`#7c3aed`) | Adjective | Descriptive attributes |
+| Emerald (`#34d399`) | Emerald (`#059669`) | Adverb | Modifiers |
+
+- **Node Size** — Relative to term frequency across all definitions (Root node has a fixed priority size of 7).
+- **Edge Width** — Proportional to the frequency of co-occurrence within definition sentences.
 
 ---
 
@@ -52,20 +67,22 @@ knowledge-graph/
 ├── app/
 │   ├── api/
 │   │   └── dictionary/
-│   │       └── route.ts          # Server proxy → dictionaryapi.dev
+│   │       └── route.ts          # Server-side CORS proxy for dictionary queries
 │   ├── components/
-│   │   ├── KnowledgeGraph.tsx    # 3D force graph (WebGL, imperative mount)
-│   │   ├── NodePanel.tsx         # Slide-in definition panel
-│   │   └── SearchBar.tsx         # Search input with loading state
+│   │   ├── KnowledgeGraph.tsx    # Imperatively mounted WebGL 3D graph container
+│   │   ├── LibraryPanel.tsx      # Sidebar/drawer component for saved words
+│   │   ├── NodePanel.tsx         # Slide-out details, history, and actions panel
+│   │   └── SearchBar.tsx         # Main query input with built-in loading states
 │   ├── lib/
-│   │   └── nlp.ts                # NLP: POS extraction + graph builder
-│   ├── globals.css               # Design system tokens + all component styles
-│   ├── layout.tsx                # Root layout + metadata
-│   └── page.tsx                  # Main orchestrator
-├── public/
-├── next.config.ts
-├── tsconfig.json
-└── package.json
+│   │   ├── library.ts            # LocalStorage persistence & library graph builder
+│   │   └── nlp.ts                # NLP pipeline: POS extraction & graph construct
+│   ├── globals.css               # Theme variables & design system styles
+│   ├── layout.tsx                # App root layout and metadata configuration
+│   └── page.tsx                  # Main orchestration view and state manager
+├── public/                       # Static public assets
+├── next.config.ts                # Next.js configurations
+├── tsconfig.json                 # TypeScript compiler setup
+└── package.json                  # Dependencies & scripts
 ```
 
 ---
@@ -77,17 +94,19 @@ knowledge-graph/
 - [Bun](https://bun.sh) `>= 1.0`
 - Node.js `>= 18`
 
-### Install & Run
+### Install Dependencies
 
 ```bash
-# Install dependencies
 bun install
+```
 
-# Start dev server
+### Start Development Server
+
+```bash
 bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+The server runs locally at [http://localhost:3000](http://localhost:3000).
 
 ### Build for Production
 
@@ -100,17 +119,10 @@ bun run start
 
 ## Key Design Decisions
 
-**Why `3d-force-graph` directly instead of `react-force-graph`?**  
-`react-force-graph` bundles all four graph variants (2D, 3D, AR, VR) in a single import. The VR variant pulls in `aframe`, which crashes in browser environments without the `AFRAME` global. Importing `3d-force-graph` directly avoids this entirely.
-
-**Why preserve node positions on data update?**  
-When `graphData()` is called with new nodes, the force simulation restarts from zero — causing nodes to briefly have `undefined` coordinates. On each update, existing node positions are read and seeded into the new data, so the simulation resumes smoothly.
-
-**Why a server-side API proxy?**  
-`dictionaryapi.dev` does not set permissive CORS headers for all origins. The `/api/dictionary` route proxies the request server-side, keeping the fetch logic out of the browser.
-
-**Why function words are discarded?**  
-Stop words (articles, prepositions, conjunctions, pronouns) carry no semantic weight in a knowledge graph — they connect syntax, not meaning. Only content words (nouns, verbs, adjectives, adverbs) form meaningful conceptual relationships.
+- **Direct WebGL Rendering** — Utilizing `3d-force-graph` directly bypasses React wrapper reconciliation overhead and avoids packaging unnecessary VR dependencies (`aframe`) that crash on typical SSR execution.
+- **Node Position Seeding** — To prevent the physics engine from snapping nodes to coordinate origins during layout updates, current coordinates are extracted and merged with incoming node updates.
+- **Server API Proxying** — Next.js routing is leveraged to proxy requests to the third-party dictionary API, bypassing standard client CORS limitations.
+- **Stop Word Filtering** — Grammatical helper words are discarded to keep the visualization focused exclusively on concepts and actions that carry semantic weight.
 
 ---
 
