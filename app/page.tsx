@@ -130,6 +130,11 @@ export default function Home() {
         setGraphData(newGraph);
         localStorage.setItem("lexgraph:lastWord", entry.word);
 
+        // Update URL query parameter
+        const url = new URL(window.location.href);
+        url.searchParams.set("word", entry.word);
+        window.history.replaceState(null, "", url.toString());
+
         if (keepSelected) {
           const found = newGraph.nodes.find((n) => n.id === entry.word);
           if (found) setSelectedNode(found);
@@ -160,6 +165,11 @@ export default function Home() {
     setSelectedNode(null);
     setError(null);
     setRootWord("");
+
+    // Clear URL query parameter
+    const url = new URL(window.location.href);
+    url.searchParams.delete("word");
+    window.history.replaceState(null, "", url.toString());
 
     try {
       const entries: LibraryEntry[] = await Promise.all(
@@ -219,10 +229,19 @@ export default function Home() {
     [rootWord, handleSearch]
   );
 
-  // Restore last word on mount
+  // Load word from URL query or localStorage on mount
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    let urlWord = params.get("word");
+    if (urlWord) {
+      urlWord = urlWord.replace(/^['"]|['"]$/g, "");
+    }
     const saved = localStorage.getItem("lexgraph:lastWord");
-    if (saved) handleSearch(saved);
+    if (urlWord) {
+      handleSearch(urlWord);
+    } else if (saved) {
+      handleSearch(saved);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -237,6 +256,11 @@ export default function Home() {
     setError(null);
     setIsLibraryGraph(false);
     localStorage.removeItem("lexgraph:lastWord");
+
+    // Clear URL query parameter
+    const url = new URL(window.location.href);
+    url.searchParams.delete("word");
+    window.history.replaceState(null, "", url.toString());
   }, []);
 
   return (
